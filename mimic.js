@@ -61,6 +61,7 @@ function onStop() {
   if (detector && detector.isRunning) {
     detector.removeEventListener();
     detector.stop();  // stop detector
+    clearTimeout(timeOut);
   }
 };
 
@@ -74,7 +75,8 @@ function onReset() {
   $("#logs").html("");  // clear out previous log
 
   // TODO(optional): You can restart the game as well
-  // <your code here>
+  restartGame();
+  
 };
 
 // Add a callback to notify when camera access is allowed
@@ -102,7 +104,8 @@ detector.addEventListener("onInitializeSuccess", function() {
   $("#face_video").css("display", "none");
 
   // TODO(optional): Call a function to initialize the game, if needed
-  // <your code here>
+  updateTargetEmoji();
+  setScore(correctScore, totalScore);
 });
 
 // Add a callback to receive the results from processing an image
@@ -133,7 +136,8 @@ detector.addEventListener("onImageResultsSuccess", function(faces, image, timest
     drawEmoji(canvas, image, faces[0]);
 
     // TODO: Call your function to run the game (define it first!)
-    // <your code here>
+    updateScore(faces[0]);
+    setScore(correctScore, totalScore);
   }
 });
 
@@ -147,15 +151,18 @@ function drawFeaturePoints(canvas, img, face) {
 
   // TODO: Set the stroke and/or fill style you want for each feature point marker
   // See: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#Fill_and_stroke_styles
-  // <your code here>
   
   // Loop over each feature point in the face
   for (var id in face.featurePoints) {
     var featurePoint = face.featurePoints[id];
 
+    ctx.fillStyle = "#1E90FF"
+    ctx.strokeStyle = "#1E90FF"
     // TODO: Draw feature point, e.g. as a circle using ctx.arc()
     // See: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/arc
-    // <your code here>
+    ctx.beginPath()
+    ctx.arc(featurePoint.x, featurePoint.y, 2, 0, 2*Math.PI)
+    ctx.stroke()
   }
 }
 
@@ -165,12 +172,12 @@ function drawEmoji(canvas, img, face) {
   var ctx = canvas.getContext('2d');
 
   // TODO: Set the font and style you want for the emoji
-  // <your code here>
+  ctx.font = "50px Arial"
   
   // TODO: Draw it using ctx.strokeText() or fillText()
   // See: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillText
   // TIP: Pick a particular feature point as an anchor so that the emoji sticks to your face
-  // <your code here>
+  ctx.fillText(face.emojis.dominantEmoji, face.featurePoints[0].x - 50, face.featurePoints[0].y-50, 100)
 }
 
 // TODO: Define any variables and functions to implement the Mimic Me! game mechanics
@@ -186,4 +193,47 @@ function drawEmoji(canvas, img, face) {
 // - Define an initialization/reset function, and call it from the "onInitializeSuccess" event handler above
 // - Define a game reset function (same as init?), and call it from the onReset() function above
 
-// <your code here>
+var totalScore = 0;
+var correctScore = 0;
+var randomEmoji = -1;
+var timeOut;
+
+function updateTargetEmoji(){
+  //get a random emoji code to display
+  randomEmoji = emojis[Math.floor(Math.random()*emojis.length)]
+  //display the random emoji
+  setTargetEmoji(randomEmoji);
+
+  //increase the totalScore
+  totalScore += 1;
+
+  //set a timer for the target emoji
+  timeOut = setTimeout(function() {
+    updateTargetEmoji();
+  }, 7500);
+}
+
+function updateScore(face){
+  //get the unicode of the dominant emoji and compare to target emoji
+  if(toUnicode(face.emojis.dominantEmoji) == randomEmoji){
+      //increment correct score if equal
+      correctScore += 1;
+      //clear the timeout to resolve execution stack conflicts
+      clearTimeout(timeOut);
+      //update target emoji
+      updateTargetEmoji()
+  }
+}
+
+/**
+ * Resets the game variables
+ */
+function restartGame(){
+  totalScore = 0;
+  correctScore = 0;
+  randomEmoji = 0;
+  timeOut = 0;
+  setScore(correctScore, totalScore);
+  $("#target").html("?");
+}
+
